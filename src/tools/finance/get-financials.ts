@@ -51,12 +51,13 @@ function formatSubToolName(name: string): string {
   return name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-// Import all finance tools directly (avoid circular deps with index.ts)
-import { getIncomeStatements, getBalanceSheets, getCashFlowStatements, getAllFinancialStatements } from './fundamentals.js';
-import { getKeyRatios, getHistoricalKeyRatios } from './key-ratios.js';
-import { getAnalystEstimates } from './estimates.js';
+// Yahoo Finance-backed tools for fundamentals, ratios, estimates, earnings
+import { getIncomeStatements, getBalanceSheets, getCashFlowStatements, getAllFinancialStatements } from './yf-fundamentals.js';
+import { getKeyRatios, getHistoricalKeyRatios } from './yf-key-ratios.js';
+import { getAnalystEstimates } from './yf-estimates.js';
+import { getEarnings } from './yf-earnings.js';
+// Segmented revenues still uses Financial Datasets (no Yahoo Finance equivalent)
 import { getSegmentedRevenues } from './segments.js';
-import { getEarnings } from './earnings.js';
 
 // All finance tools available for routing
 const FINANCE_TOOLS: StructuredToolInterface[] = [

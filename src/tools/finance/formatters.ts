@@ -188,13 +188,31 @@ export function formatInsiderTrades(data: unknown): string {
 }
 
 export function formatAnalystEstimates(data: unknown): string {
-  const items = Array.isArray(data) ? data : [];
-  if (items.length === 0) return 'No analyst estimates available.';
+  // Handle both flat array (Financial Datasets) and { estimates, price_targets } (Yahoo Finance)
+  let items: Rec[];
+  let priceTargets: Rec | undefined;
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const d = data as Rec;
+    items = Array.isArray(d.estimates) ? d.estimates as Rec[] : [];
+    priceTargets = d.price_targets as Rec | undefined;
+  } else {
+    items = Array.isArray(data) ? data : [];
+  }
+  if (items.length === 0 && !priceTargets) return 'No analyst estimates available.';
   const lines = ['Analyst Estimates', ''];
-  lines.push('| Period | Est. Revenue | Est. EPS | # Analysts |');
-  lines.push('|--------|-------------|----------|------------|');
-  for (const row of items as Rec[]) {
-    lines.push(`| ${fmtDate(row.report_period ?? row.date)} | ${fmtNum(row.estimated_revenue_avg ?? row.revenue_estimate)} | ${fmtPrice(row.estimated_eps_avg ?? row.eps_estimate)} | ${row.number_of_analysts ?? '—'} |`);
+  if (items.length > 0) {
+    lines.push('| Period | Est. Revenue | Est. EPS | # Analysts |');
+    lines.push('|--------|-------------|----------|------------|');
+    for (const row of items) {
+      lines.push(`| ${fmtDate(row.report_period ?? row.date)} | ${fmtNum(row.estimated_revenue_avg ?? row.revenue_estimate)} | ${fmtPrice(row.estimated_eps_avg ?? row.eps_estimate)} | ${row.number_of_analysts ?? '—'} |`);
+    }
+  }
+  if (priceTargets) {
+    lines.push('');
+    lines.push('Price Targets');
+    if (priceTargets.target_mean !== undefined) lines.push(`- Mean: ${fmtPrice(priceTargets.target_mean)} | Median: ${fmtPrice(priceTargets.target_median)}`);
+    if (priceTargets.target_high !== undefined) lines.push(`- High: ${fmtPrice(priceTargets.target_high)} | Low: ${fmtPrice(priceTargets.target_low)}`);
+    if (priceTargets.recommendation !== undefined) lines.push(`- Consensus: ${priceTargets.recommendation} (${priceTargets.num_analysts} analysts)`);
   }
   return lines.join('\n');
 }
@@ -203,10 +221,24 @@ export function formatEarnings(data: unknown): string {
   const d = (data && typeof data === 'object') ? data as Rec : {};
   if (Object.keys(d).length === 0) return 'No earnings data available.';
   const lines: string[] = [];
+  if (d.report_period !== undefined) lines.push(`Period: ${fmtDate(d.report_period)}`);
   if (d.revenue !== undefined) lines.push(`Revenue: ${fmtNum(d.revenue)}`);
   if (d.eps !== undefined) lines.push(`EPS: ${fmtPrice(d.eps)}`);
+  if (d.eps_estimate !== undefined) lines.push(`EPS Estimate: ${fmtPrice(d.eps_estimate)}`);
   if (d.revenue_surprise !== undefined) lines.push(`Revenue Surprise: ${fmtPct(d.revenue_surprise)}`);
   if (d.eps_surprise !== undefined) lines.push(`EPS Surprise: ${fmtPct(d.eps_surprise)}`);
+  if (d.next_earnings_date !== undefined) lines.push(`Next Earnings: ${d.next_earnings_date}`);
+  if (d.current_quarter_estimate !== undefined) lines.push(`Current Quarter Estimate: ${fmtPrice(d.current_quarter_estimate)}`);
+  // Quarterly EPS history (from Yahoo Finance)
+  const quarterly = d.quarterly_eps as Rec[] | undefined;
+  if (Array.isArray(quarterly) && quarterly.length > 0) {
+    lines.push('');
+    lines.push('| Quarter | Actual | Estimate |');
+    lines.push('|---------|--------|----------|');
+    for (const q of quarterly) {
+      lines.push(`| ${q.date ?? '—'} | ${fmtPrice(q.actual)} | ${fmtPrice(q.estimate)} |`);
+    }
+  }
   return lines.length > 0 ? lines.join('\n') : JSON.stringify(d);
 }
 

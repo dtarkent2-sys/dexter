@@ -55,25 +55,50 @@ function formatSubToolName(name: string): string {
 import { getStockPrice, getStockPrices, getStockTickers } from './stock-price.js';
 import { getCryptoPriceSnapshot, getCryptoPrices, getCryptoTickers } from './crypto.js';
 import { getCompanyNews } from './news.js';
-import { getInsiderTrades } from './insider_trades.js';
+// Yahoo Finance-backed insider trades (Alpaca doesn't provide insider data)
+import { getInsiderTrades } from './yf-insider-trades.js';
 
-// All market data tools available for routing
-const MARKET_DATA_TOOLS: StructuredToolInterface[] = [
-  // Stock Prices
-  getStockPrice,
-  getStockPrices,
-  getStockTickers,
-  // Crypto Prices
-  getCryptoPriceSnapshot,
-  getCryptoPrices,
-  getCryptoTickers,
-  // News & Activity
-  getCompanyNews,
-  getInsiderTrades,
-];
+// Alpaca-backed alternatives (used when ALPACA_API_KEY is configured)
+import { isAlpacaConfigured } from './api-alpaca.js';
+import { getAlpacaStockPrice, getAlpacaStockPrices } from './alpaca-stock-price.js';
+import { getAlpacaCryptoPriceSnapshot, getAlpacaCryptoPrices } from './alpaca-crypto.js';
+import { getAlpacaCompanyNews } from './alpaca-news.js';
 
-// Create a map for quick tool lookup by name
-const MARKET_DATA_TOOL_MAP = new Map(MARKET_DATA_TOOLS.map(t => [t.name, t]));
+/**
+ * Build the market data tool set. When Alpaca credentials are present,
+ * stock prices, crypto prices, and news are served by Alpaca (SIP-quality
+ * real-time data on Algo Pro). Insider trades and ticker-lookup tools
+ * always come from Financial Datasets since Alpaca doesn't offer those.
+ */
+function buildMarketDataTools(): StructuredToolInterface[] {
+  const useAlpaca = isAlpacaConfigured();
+  return [
+    // Stock Prices
+    useAlpaca ? getAlpacaStockPrice : getStockPrice,
+    useAlpaca ? getAlpacaStockPrices : getStockPrices,
+    getStockTickers, // Alpaca has no ticker-list endpoint
+    // Crypto Prices
+    useAlpaca ? getAlpacaCryptoPriceSnapshot : getCryptoPriceSnapshot,
+    useAlpaca ? getAlpacaCryptoPrices : getCryptoPrices,
+    getCryptoTickers, // Alpaca has no crypto ticker-list endpoint
+    // News & Activity
+    useAlpaca ? getAlpacaCompanyNews : getCompanyNews,
+    getInsiderTrades, // Alpaca has no insider trades endpoint
+  ];
+}
+
+// Lazy-initialize so env vars are read at first use, not at import time
+let _marketDataTools: StructuredToolInterface[] | null = null;
+function getMarketDataTools(): StructuredToolInterface[] {
+  if (!_marketDataTools) {
+    _marketDataTools = buildMarketDataTools();
+  }
+  return _marketDataTools;
+}
+
+function getMarketDataToolMap(): Map<string, StructuredToolInterface> {
+  return new Map(getMarketDataTools().map(t => [t.name, t]));
+}
 
 // Build the router system prompt for market data
 function buildRouterPrompt(): string {
@@ -141,7 +166,7 @@ export function createGetMarketData(model: string): DynamicStructuredTool {
       const { response } = await callLlm(input.query, {
         model,
         systemPrompt: buildRouterPrompt(),
-        tools: MARKET_DATA_TOOLS,
+        tools: getMarketDataTools(),
       });
       const aiMessage = response as AIMessage;
 
@@ -157,7 +182,7 @@ export function createGetMarketData(model: string): DynamicStructuredTool {
       const results = await Promise.all(
         toolCalls.map(async (tc) => {
           try {
-            const tool = MARKET_DATA_TOOL_MAP.get(tc.name);
+            const tool = getMarketDataToolMap().get(tc.name);
             if (!tool) {
               throw new Error(`Tool '${tc.name}' not found`);
             }
