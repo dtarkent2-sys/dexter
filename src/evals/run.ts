@@ -10,7 +10,7 @@ import 'dotenv/config';
 import { ProcessTerminal, TUI } from '@mariozechner/pi-tui';
 import { Client } from 'langsmith';
 import type { EvaluationResult } from 'langsmith/evaluation';
-import { ChatOllama } from '@langchain/ollama';
+import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
@@ -162,10 +162,12 @@ const EvaluatorOutputSchema = z.object({
   comment: z.string(),
 });
 
-const llm = new ChatOllama({
+const llm = new ChatOpenAI({
   model: 'qwen3.5:cloud',
-  ...(process.env.OLLAMA_BASE_URL ? { baseUrl: process.env.OLLAMA_BASE_URL } : {}),
-  ...(process.env.OLLAMA_API_KEY ? { headers: { Authorization: `Bearer ${process.env.OLLAMA_API_KEY}` } } : {}),
+  apiKey: process.env.OLLAMA_API_KEY,
+  configuration: {
+    baseURL: 'https://ollama.com/v1',
+  },
 });
 
 async function correctnessEvaluator({
