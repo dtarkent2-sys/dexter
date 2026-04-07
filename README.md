@@ -2,7 +2,7 @@
 
 Dexter is an autonomous financial research agent that thinks, plans, and learns as it works. It performs analysis using task planning, self-reflection, and real-time market data. Think Claude Code, but built specifically for financial research.
 
-<img width="665" height="452" alt="Screenshot 2026-04-02 at 4 16 57 PM" src="https://github.com/user-attachments/assets/02418111-5f48-4a66-be5d-dc9bf9806284" />
+<img width="665" height="452" alt="Screenshot 2026-04-02 at 4 16 57 PM" src="https://github.com/user-attachments/assets/02418111-5f48-4a66-be5d-dc9bf9806284" />
 
 ## Table of Contents
 
@@ -10,7 +10,9 @@ Dexter is an autonomous financial research agent that thinks, plans, and learns 
 - [✅ Prerequisites](#-prerequisites)
 - [💻 How to Install](#-how-to-install)
 - [🚀 How to Run](#-how-to-run)
-- [📊 How to Evaluate](#-how-to-evaluate)
+- [📊 What Can Dexter Do?](#-what-can-dexter-do)
+- [⌨️ CLI Commands](#️-cli-commands)
+- [📈 How to Evaluate](#-how-to-evaluate)
 - [🐛 How to Debug](#-how-to-debug)
 - [📱 How to Use with WhatsApp](#-how-to-use-with-whatsapp)
 - [🤝 How to Contribute](#-how-to-contribute)
@@ -25,20 +27,57 @@ Dexter takes complex financial questions and turns them into clear, step-by-step
 - **Intelligent Task Planning**: Automatically decomposes complex queries into structured research steps
 - **Autonomous Execution**: Selects and executes the right tools to gather financial data
 - **Self-Validation**: Checks its own work and iterates until tasks are complete
-- **Real-Time Financial Data**: Access to income statements, balance sheets, and cash flow statements
+- **Real-Time Financial Data**: Live stock/crypto prices, financials, earnings, insider trades, SEC filings
+- **DCF Valuation**: Full discounted cash flow analysis with sensitivity matrices
+- **Sentiment Analysis**: Public sentiment research via X/Twitter
+- **Persistent Memory**: Remembers your preferences, research rules, and past conversations
 - **Safety Features**: Built-in loop detection and step limits to prevent runaway execution
 
 [![Twitter Follow](https://img.shields.io/twitter/follow/virattt?style=social)](https://twitter.com/virattt) [![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?style=social&logo=discord)](https://discord.gg/jpGHv2XB6T)
 
-<img width="1042" height="638" alt="Screenshot 2026-02-18 at 12 21 25 PM" src="https://github.com/user-attachments/assets/2a6334f9-863f-4bd2-a56f-923e42f4711e" />
+<img width="1042" height="638" alt="Screenshot 2026-02-18 at 12 21 25 PM" src="https://github.com/user-attachments/assets/2a6334f9-863f-4bd2-a56f-923e42f4711e" />
 
 
 ## ✅ Prerequisites
 
 - [Bun](https://bun.com) runtime (v1.0 or higher)
-- OpenAI API key (get [here](https://platform.openai.com/api-keys))
-- Financial Datasets API key (get [here](https://financialdatasets.ai))
-- Exa API key (get [here](https://exa.ai)) - optional, for web search
+- At least one LLM provider API key (see below)
+
+#### LLM Providers (pick one or more)
+
+| Provider | Env Variable | Notes |
+|----------|-------------|-------|
+| Ollama | `OLLAMA_BASE_URL`, `OLLAMA_API_KEY` | Local or cloud. Default provider. |
+| OpenAI | `OPENAI_API_KEY` | |
+| Anthropic | `ANTHROPIC_API_KEY` | |
+| Google | `GOOGLE_API_KEY` | |
+| xAI | `XAI_API_KEY` | |
+| OpenRouter | `OPENROUTER_API_KEY` | Access to many models |
+| DeepSeek | `DEEPSEEK_API_KEY` | |
+
+#### Market Data Providers (optional but recommended)
+
+| Provider | Env Variable | What It Powers |
+|----------|-------------|----------------|
+| Alpaca | `ALPACA_API_KEY`, `ALPACA_API_SECRET` | Real-time stock/crypto prices, news (SIP data on Algo Pro) |
+| Financial Datasets | `FINANCIAL_DATASETS_API_KEY` | Revenue segments, ticker lookups (fallback) |
+
+> **Note:** Fundamentals (financials, ratios, estimates, earnings, insider trades) are powered by Yahoo Finance and require no API key.
+
+#### Web Search (optional)
+
+| Provider | Env Variable |
+|----------|-------------|
+| Exa (preferred) | `EXASEARCH_API_KEY` |
+| Perplexity | `PERPLEXITY_API_KEY` |
+| Tavily | `TAVILY_API_KEY` |
+
+#### Other (optional)
+
+| Feature | Env Variable |
+|---------|-------------|
+| X/Twitter search | `X_BEARER_TOKEN` |
+| LangSmith tracing | `LANGSMITH_API_KEY` |
 
 #### Installing Bun
 
@@ -74,25 +113,8 @@ bun install
 
 3. Set up your environment variables:
 ```bash
-# Copy the example environment file
 cp env.example .env
-
-# Edit .env and add your API keys (if using cloud providers)
-# OPENAI_API_KEY=your-openai-api-key
-# ANTHROPIC_API_KEY=your-anthropic-api-key (optional)
-# GOOGLE_API_KEY=your-google-api-key (optional)
-# XAI_API_KEY=your-xai-api-key (optional)
-# OPENROUTER_API_KEY=your-openrouter-api-key (optional)
-
-# Institutional-grade market data for agents
-# FINANCIAL_DATASETS_API_KEY=your-financial-datasets-api-key
-
-# (Optional) If using Ollama locally
-# OLLAMA_BASE_URL=http://127.0.0.1:11434
-
-# Web Search (Exa preferred, Tavily fallback)
-# EXASEARCH_API_KEY=your-exa-api-key
-# TAVILY_API_KEY=your-tavily-api-key
+# Edit .env and add your API keys
 ```
 
 ## 🚀 How to Run
@@ -107,7 +129,62 @@ Or with watch mode for development:
 bun dev
 ```
 
-## 📊 How to Evaluate
+## 📊 What Can Dexter Do?
+
+### Financial Research Tools
+
+| Tool | Description | Example Queries |
+|------|-------------|-----------------|
+| **DCF Valuation** | Full discounted cash flow analysis with 5-year projections and sensitivity matrix | "What's IREN worth?", "Fair value of AAPL", "Is NVDA overvalued?" |
+| **Financials** | Income statements, balance sheets, cash flow statements, key ratios, analyst estimates, earnings | "Show me AAPL's revenue trend", "What's TSLA's debt situation?" |
+| **Market Data** | Real-time stock/crypto prices, historical OHLCV, news, insider trades | "What's the price of BTC?", "Why did NVDA drop today?" |
+| **Stock Screener** | Filter stocks by P/E, growth, margins, dividend yield, and more | "Find high-growth tech stocks with P/E under 30" |
+| **SEC Filings** | Read and summarize 10-K, 10-Q, and 8-K filing sections | "What are the risk factors in AAPL's latest 10-K?" |
+| **X/Twitter Sentiment** | Public sentiment research from X/Twitter | "What's CT saying about IREN?", "Sentiment on NVDA earnings" |
+
+### Web & Browser Tools
+
+| Tool | Description |
+|------|-------------|
+| **Web Search** | General web search via Exa, Perplexity, or Tavily |
+| **Web Fetch** | Extract full article text/markdown from any URL |
+| **Browser** | Navigate websites, execute JavaScript, interact with dynamic content |
+
+### Memory & Personalization
+
+| Tool | Description |
+|------|-------------|
+| **Persistent Memory** | Dexter remembers your preferences and past research across sessions |
+| **Research Rules** | Define custom rules that shape how Dexter conducts research (stored in `.dexter/RULES.md`) |
+| **Conversation History** | Browse and reference past conversations |
+
+### File & System Tools
+
+| Tool | Description |
+|------|-------------|
+| **Read/Write/Edit Files** | Work with local files for reports, notes, or data export |
+| **Cron Jobs** | Schedule recurring research tasks |
+| **Heartbeat** | Periodic monitoring checklist (`.dexter/HEARTBEAT.md`) |
+
+## ⌨️ CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `/model` | Switch LLM provider and model |
+| `/rules` | View and manage your research rules |
+| `/memory` | See what Dexter remembers about you |
+| `/heartbeat` | Show monitoring checklist |
+| `/history` | Browse past conversation summaries |
+| `/clear` | Clear conversation history |
+| `/help` | Show keyboard shortcuts and tips |
+
+**Keyboard Shortcuts:**
+- **Esc** (once) — Interrupt current query or clear input
+- **Esc** (twice) — Exit Dexter (when input is empty)
+- **Ctrl+C** — Exit Dexter
+- **Up/Down arrows** — Navigate input history
+
+## 📈 How to Evaluate
 
 Dexter includes an evaluation suite that tests the agent against a dataset of financial questions. Evals use LangSmith for tracking and an LLM-as-judge approach for scoring correctness.
 
