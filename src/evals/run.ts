@@ -168,8 +168,6 @@ const llm = new ChatOllama({
   ...(process.env.OLLAMA_API_KEY ? { headers: { Authorization: `Bearer ${process.env.OLLAMA_API_KEY}` } } : {}),
 });
 
-const structuredLlm = llm.withStructuredOutput(EvaluatorOutputSchema);
-
 async function correctnessEvaluator({
   outputs,
   referenceOutputs,
@@ -191,16 +189,31 @@ ${expectedAnswer}
 Actual Answer:
 ${actualAnswer}
 
-Evaluate and provide:
-- score: 1 if the answer is correct (contains the key information), 0 if incorrect
-- comment: brief explanation of why the answer is correct or incorrect`;
+Respond with ONLY a JSON object (no markdown, no explanation outside the JSON):
+{"score": 1, "comment": "reason"}
+
+Use score 1 if correct, 0 if incorrect.`;
 
   try {
-    const result = await structuredLlm.invoke(prompt);
+    const response = await llm.invoke(prompt);
+    const text = typeof response.content === 'string' ? response.content : String(response.content);
+    // Extract JSON from response (handle possible markdown wrapping)
+    const jsonMatch = text.match(/\{[\s\S]*?"score"\s*:\s*[01][\s\S]*?\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      const validated = EvaluatorOutputSchema.parse(parsed);
+      return {
+        key: 'correctness',
+        score: validated.score,
+        comment: validated.comment,
+      };
+    }
+    // Fallback: check if response contains "1" or "correct"
+    const isCorrect = text.includes('"score": 1') || text.includes('"score":1');
     return {
       key: 'correctness',
-      score: result.score,
-      comment: result.comment,
+      score: isCorrect ? 1 : 0,
+      comment: text.slice(0, 200),
     };
   } catch (error) {
     return {
