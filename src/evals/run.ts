@@ -10,7 +10,7 @@ import 'dotenv/config';
 import { ProcessTerminal, TUI } from '@mariozechner/pi-tui';
 import { Client } from 'langsmith';
 import type { EvaluationResult } from 'langsmith/evaluation';
-import { ChatOpenAI } from '@langchain/openai';
+import { ChatOllama } from '@langchain/ollama';
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
@@ -141,7 +141,7 @@ function shuffleArray<T>(array: T[]): T[] {
 // ============================================================================
 
 async function target(inputs: { question: string }): Promise<{ answer: string }> {
-  const agent = await Agent.create({ model: 'gpt-5.4', maxIterations: 10 });
+  const agent = await Agent.create({ model: 'ollama:qwen3.5:cloud', maxIterations: 10 });
   let answer = '';
   
   for await (const event of agent.run(inputs.question)) {
@@ -154,7 +154,7 @@ async function target(inputs: { question: string }): Promise<{ answer: string }>
 }
 
 // ============================================================================
-// Correctness evaluator - LLM-as-judge using gpt-5.4
+// Correctness evaluator - LLM-as-judge using Ollama (Qwen 3.5)
 // ============================================================================
 
 const EvaluatorOutputSchema = z.object({
@@ -162,9 +162,10 @@ const EvaluatorOutputSchema = z.object({
   comment: z.string(),
 });
 
-const llm = new ChatOpenAI({
-  model: 'gpt-5.4',
-  apiKey: process.env.OPENAI_API_KEY,
+const llm = new ChatOllama({
+  model: 'qwen3.5:cloud',
+  ...(process.env.OLLAMA_BASE_URL ? { baseUrl: process.env.OLLAMA_BASE_URL } : {}),
+  ...(process.env.OLLAMA_API_KEY ? { headers: { Authorization: `Bearer ${process.env.OLLAMA_API_KEY}` } } : {}),
 });
 
 const structuredLlm = llm.withStructuredOutput(EvaluatorOutputSchema);
