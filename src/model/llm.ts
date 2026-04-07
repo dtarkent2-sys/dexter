@@ -15,8 +15,8 @@ import { logger } from '@/utils';
 import { classifyError, isNonRetryableError } from '@/utils/errors';
 import { resolveProvider, getProviderById } from '@/providers';
 
-export const DEFAULT_PROVIDER = 'openai';
-export const DEFAULT_MODEL = 'gpt-5.4';
+export const DEFAULT_PROVIDER = 'ollama';
+export const DEFAULT_MODEL = 'ollama:qwen3.5:cloud';
 
 /**
  * Gets the fast model variant for the given provider.
@@ -119,6 +119,7 @@ const MODEL_FACTORIES: Record<string, ModelFactory> = {
       model: name.replace(/^ollama:/, ''),
       ...opts,
       ...(process.env.OLLAMA_BASE_URL ? { baseUrl: process.env.OLLAMA_BASE_URL } : {}),
+      ...(process.env.OLLAMA_API_KEY ? { headers: { Authorization: `Bearer ${process.env.OLLAMA_API_KEY}` } } : {}),
     }),
 };
 

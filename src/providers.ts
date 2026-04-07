@@ -79,11 +79,13 @@ export const PROVIDERS: ProviderDef[] = [
     id: 'ollama',
     displayName: 'Ollama',
     modelPrefix: 'ollama:',
+    apiKeyEnvVar: 'OLLAMA_API_KEY',
+    fastModel: 'ollama:qwen3.5:cloud',
     contextWindow: 128_000,
   },
 ];
 
-const defaultProvider = PROVIDERS.find((p) => p.id === 'openai')!;
+const defaultProvider = PROVIDERS.find((p) => p.id === 'ollama')!;
 
 /**
  * Resolve the provider for a given model name based on its prefix.
