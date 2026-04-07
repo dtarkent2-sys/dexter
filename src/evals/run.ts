@@ -141,7 +141,7 @@ function shuffleArray<T>(array: T[]): T[] {
 // ============================================================================
 
 async function target(inputs: { question: string }): Promise<{ answer: string }> {
-  const agent = await Agent.create({ model: 'ollama:qwen3.5:cloud', maxIterations: 10 });
+  const agent = await Agent.create({ model: 'ollama:minimax-m2.7:cloud', maxIterations: 10 });
   let answer = '';
   
   for await (const event of agent.run(inputs.question)) {
@@ -154,7 +154,7 @@ async function target(inputs: { question: string }): Promise<{ answer: string }>
 }
 
 // ============================================================================
-// Correctness evaluator - LLM-as-judge using Ollama (Qwen 3.5)
+// Correctness evaluator - LLM-as-judge using Ollama (MiniMax M2.7)
 // ============================================================================
 
 const EvaluatorOutputSchema = z.object({
@@ -163,7 +163,7 @@ const EvaluatorOutputSchema = z.object({
 });
 
 const llm = new ChatOpenAI({
-  model: 'qwen3.5:cloud',
+  model: 'minimax-m2.7:cloud',
   apiKey: process.env.OLLAMA_API_KEY,
   configuration: {
     baseURL: 'https://ollama.com/v1',
