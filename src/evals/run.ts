@@ -166,7 +166,7 @@ const llm = new ChatOpenAI({
   model: 'minimax-m2.7:cloud',
   apiKey: process.env.OLLAMA_API_KEY,
   configuration: {
-    baseURL: 'https://ollama.com/v1',
+    baseURL: 'https://ollama.com',
   },
 });
 
