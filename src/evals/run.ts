@@ -288,54 +288,66 @@ function createEvaluationRunner(sampleSize?: number) {
     // Generate experiment name for tracking
     const experimentName = `dexter-eval-${Date.now().toString(36)}`;
 
-    // Run evaluation manually - process each example one by one
-    for (const example of examples) {
-      const question = example.inputs.question;
+    // Run evaluations in parallel batches for speed
+    const CONCURRENCY = 5;
 
-      // Yield question start - UI shows this immediately
-      yield {
-        type: 'question_start',
-        question,
-      };
+    for (let i = 0; i < examples.length; i += CONCURRENCY) {
+      const batch = examples.slice(i, i + CONCURRENCY);
 
-      // Run the agent to get an answer
-      const startTime = Date.now();
-      const outputs = await target(example.inputs);
-      const endTime = Date.now();
+      // Yield start for all questions in this batch
+      for (const example of batch) {
+        yield { type: 'question_start', question: example.inputs.question };
+      }
 
-      // Run the correctness evaluator
-      const evalResult = await correctnessEvaluator({
-        inputs: example.inputs,
-        outputs,
-        referenceOutputs: example.outputs,
-      });
+      // Run all questions in this batch concurrently
+      const results = await Promise.all(
+        batch.map(async (example) => {
+          const question = example.inputs.question;
+          const startTime = Date.now();
+          const outputs = await target(example.inputs);
+          const endTime = Date.now();
 
-      // Log to LangSmith for tracking
-      await client.createRun({
-        name: 'dexter-eval-run',
-        run_type: 'chain',
-        inputs: example.inputs,
-        outputs,
-        start_time: startTime,
-        end_time: endTime,
-        project_name: experimentName,
-        extra: {
-          dataset: datasetName,
-          reference_outputs: example.outputs,
-          evaluation: {
-            score: evalResult.score,
-            comment: evalResult.comment,
-          },
-        },
-      });
+          const evalResult = await correctnessEvaluator({
+            inputs: example.inputs,
+            outputs,
+            referenceOutputs: example.outputs,
+          });
 
-      // Yield question end with result - UI updates progress bar
-      yield {
-        type: 'question_end',
-        question,
-        score: typeof evalResult.score === 'number' ? evalResult.score : 0,
-        comment: evalResult.comment || '',
-      };
+          await client.createRun({
+            name: 'dexter-eval-run',
+            run_type: 'chain',
+            inputs: example.inputs,
+            outputs,
+            start_time: startTime,
+            end_time: endTime,
+            project_name: experimentName,
+            extra: {
+              dataset: datasetName,
+              reference_outputs: example.outputs,
+              evaluation: {
+                score: evalResult.score,
+                comment: evalResult.comment,
+              },
+            },
+          });
+
+          return {
+            question,
+            score: typeof evalResult.score === 'number' ? evalResult.score : 0,
+            comment: evalResult.comment || '',
+          };
+        })
+      );
+
+      // Yield results for the completed batch
+      for (const result of results) {
+        yield {
+          type: 'question_end',
+          question: result.question,
+          score: result.score,
+          comment: result.comment,
+        };
+      }
     }
 
     // Yield complete event
