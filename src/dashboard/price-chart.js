@@ -319,19 +319,28 @@ SQ.pricechart = (function() {
   // ── Chart Init ──
   function initPriceChart() {
     var container = document.getElementById('pcTvChartContainer');
-    if (!container || typeof LightweightCharts === 'undefined') return;
-    chart.tv = LightweightCharts.createChart(container, {
-      autoSize: true,
-      layout: { background: { color: 'transparent' }, textColor: '#5a5a65', fontFamily: "'JetBrains Mono', monospace", fontSize: 10 },
-      grid: { vertLines: { color: 'rgba(255,255,255,0.04)' }, horzLines: { color: 'rgba(255,255,255,0.04)' } },
-      crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: 'rgba(251,191,36,0.3)', labelBackgroundColor: '#0e0e11' }, horzLine: { color: 'rgba(251,191,36,0.3)', labelBackgroundColor: '#0e0e11' } },
-      rightPriceScale: { borderColor: 'rgba(255,255,255,0.06)' },
-      timeScale: { borderColor: 'rgba(255,255,255,0.06)', timeVisible: true, secondsVisible: false },
-    });
-    chart.tvCandle = chart.tv.addSeries(LightweightCharts.CandlestickSeries, { upColor: '#22C55E', downColor: '#EF4444', borderVisible: false, wickUpColor: '#22C55E', wickDownColor: '#EF4444' });
-    chart.tvVolume = chart.tv.addSeries(LightweightCharts.HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false });
-    chart.tvVolume.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
-    loadChartBars();
+    if (!container) return;
+    if (typeof LightweightCharts === 'undefined') {
+      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--red);font-family:var(--font-mono);font-size:12px;text-align:center;padding:20px;">CRITICAL ERROR: LightweightCharts library not loaded.<br>Please check your internet connection or clear cache.</div>';
+      return;
+    }
+    try {
+      chart.tv = LightweightCharts.createChart(container, {
+        autoSize: true,
+        layout: { background: { color: 'transparent' }, textColor: '#5a5a65', fontFamily: "'JetBrains Mono', monospace", fontSize: 10 },
+        grid: { vertLines: { color: 'rgba(255,255,255,0.04)' }, horzLines: { color: 'rgba(255,255,255,0.04)' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: 'rgba(251,191,36,0.3)', labelBackgroundColor: '#0e0e11' }, horzLine: { color: 'rgba(251,191,36,0.3)', labelBackgroundColor: '#0e0e11' } },
+        rightPriceScale: { borderColor: 'rgba(255,255,255,0.06)' },
+        timeScale: { borderColor: 'rgba(255,255,255,0.06)', timeVisible: true, secondsVisible: false },
+      });
+      chart.tvCandle = chart.tv.addSeries(LightweightCharts.CandlestickSeries, { upColor: '#22C55E', downColor: '#EF4444', borderVisible: false, wickUpColor: '#22C55E', wickDownColor: '#EF4444' });
+      chart.tvVolume = chart.tv.addSeries(LightweightCharts.HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false });
+      chart.tvVolume.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+      loadChartBars();
+    } catch (e) {
+      console.error('Chart Init Error:', e);
+      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--red);font-family:var(--font-mono);font-size:12px;text-align:center;padding:20px;">Chart Initialization Failed: ' + e.message + '</div>';
+    }
   }
 
   async function loadChartBars() {
